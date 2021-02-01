@@ -1,65 +1,69 @@
-import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import { gql } from 'graphql-request'
+import { client } from '../lib/client'
+import Link from 'next/link'
+import { format } from 'date-fns'
+import parseISO from 'date-fns/parseISO'
+import { Image } from 'react-datocms'
 
-export default function Home() {
+import Layout from '../components/layout'
+
+export default function Home({ data }) {
   return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
-      </footer>
-    </div>
+    <Layout>
+      <div className="flex flex-wrap">
+        {data.map(post => (
+          <div className="w-1/2 p-4" key={post.id}>
+            <Link href={`/${post.slug}`}>
+              <a className="bg-white hover:bg-gray-50 block rounded-md shadow-md p-4">
+                <article>
+                  {post.banner ? <Image className="rounded" data={post.banner.responsiveImage} /> : null}
+                  <time className="py-4 block text-gray-400">{format(parseISO(post._createdAt), 'MMMM do yyyy')}</time>
+                  <h3 className="text-3xl font-bold">{post.title}</h3>
+                </article>
+              </a>
+            </Link>
+          </div>
+        ))}
+      </div>
+    </Layout>
   )
+}
+
+export async function getStaticProps() {
+
+  const query = gql`
+    {
+      allPosts {
+        id
+        slug
+        title
+        _createdAt
+        banner {
+          responsiveImage(
+            imgixParams: { maxW: 480 }
+          ) {
+              srcSet
+              webpSrcSet
+              sizes
+              src
+              width
+              height
+              aspectRatio
+              alt
+              title
+              bgColor
+              base64
+          }
+        }
+      }
+    } 
+  `
+
+  const data = await client(query)
+
+  return {
+    props: { 
+      data: data?.allPosts ?? []
+    },
+  }
 }
